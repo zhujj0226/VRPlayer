@@ -9,10 +9,12 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
@@ -22,27 +24,47 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.zhujj.vrplayer.http.HttpHelper;
+import com.zhujj.vrplayer.http.ListBean;
+import com.zhujj.vrplayer.http.ResponseCallback;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+    int[] pics = {R.drawable.bitmap360, R.drawable.cube_back, R.drawable.dome_pic};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-        ArrayList<HolderModel> holderModels = new ArrayList<>();
-        holderModels.add(new HolderModel(getDrawableUri(R.drawable.bitmap360)));
-        holderModels.add(new HolderModel(getDrawableUri(R.drawable.cube_back)));
-        holderModels.add(new HolderModel(getDrawableUri(R.drawable.dome_pic)));
-        holderModels.add(new HolderModel(getDrawableUri(R.drawable.bitmap360)));
-        holderModels.add(new HolderModel(getDrawableUri(R.drawable.cube_back)));
-        holderModels.add(new HolderModel(getDrawableUri(R.drawable.dome_pic)));
-        ListAdapter listAdapter = new ListAdapter(holderModels);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(listAdapter);
         getPermission();
+        new HttpHelper("http://82.156.254.39/live/vr/list").execute(new ResponseCallback() {
+            @Override
+            public void onSuccess(String response) {
+                super.onSuccess(response);
+                Gson gson = new Gson();
+                Log.e("zhujj", response);
+                try {
+                    List<ListBean> listBeans = gson.fromJson(response, new TypeToken<List<ListBean>>() {
+                    }.getType());
+                    ArrayList<HolderModel> holderModels = new ArrayList<>();
+                    for (int i = 0; i < listBeans.size(); i++) {
+//                        holderModels.add(new HolderModel(getDrawableUri(pics[i % pics.length]), listBeans.get(i).url));
+                        holderModels.add(new HolderModel(listBeans.get(i).pic, listBeans.get(i).url, listBeans.get(i).title));
+                    }
+                    ListAdapter listAdapter = new ListAdapter(holderModels);
+                    recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
+                    recyclerView.setAdapter(listAdapter);
+                } catch (Exception e) {
+                    Toast.makeText(getApplicationContext(), "接口挂了", Toast.LENGTH_SHORT);
+                }
+            }
+        });
     }
 
     private void getPermission() {
@@ -52,6 +74,14 @@ public class MainActivity extends AppCompatActivity {
         } else {
             ActivityCompat.requestPermissions(this, new String[]
                             {Manifest.permission.READ_EXTERNAL_STORAGE},
+                    1);
+        }
+        int hasPermission1 = ContextCompat.checkSelfPermission(getApplication(), Manifest.permission.INTERNET);
+        if (hasPermission1 == PackageManager.PERMISSION_GRANTED) {
+            //已获取权限
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]
+                            {Manifest.permission.INTERNET},
                     1);
         }
     }
@@ -64,18 +94,30 @@ public class MainActivity extends AppCompatActivity {
 
     private static class HolderModel {
         private Uri uri;
+        String pic;
+        String rtmp;
+        String text;
 
-        private HolderModel(Uri uri) {
+        private HolderModel(Uri uri, String rtmp) {
             this.uri = uri;
+            this.rtmp = rtmp;
+        }
+
+        private HolderModel(String pic, String rtmp, String text) {
+            this.pic = pic;
+            this.rtmp = rtmp;
+            this.text = text;
         }
     }
 
     private class ImageHolder extends RecyclerView.ViewHolder {
         public CircleImageView imageView;
+        public TextView textView;
 
         public ImageHolder(@NonNull View itemView) {
             super(itemView);
             imageView = itemView.findViewById(R.id.image);
+            textView = itemView.findViewById(R.id.textview);
         }
     }
 
@@ -89,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
         @NonNull
         @Override
         public ImageHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycle_image, parent,false);
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycle_image, parent, false);
 //            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycle_image, null);
             ImageHolder imageHolder = new ImageHolder(view);
             return imageHolder;
@@ -97,11 +139,13 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ImageHolder holder, int position) {
-            holder.imageView.setImageURI(dataList.get(position).uri);
+            Glide.with(MainActivity.this).load(dataList.get(position).pic).into(holder.imageView);
+            holder.textView.setText(dataList.get(position).text);
+//            holder.imageView.setImageURI(dataList.get(position).uri);
             holder.imageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    start(MainActivity.this,null,VideoPlayerActivity.class);
+                    start(MainActivity.this, Uri.parse(dataList.get(position).rtmp), VideoPlayerActivity.class);
                 }
             });
         }

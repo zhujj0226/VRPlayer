@@ -44,4 +44,8 @@ dependencies {
     implementation 'com.squareup.picasso:picasso:2.5.2'
     implementation 'androidx.recyclerview:recyclerview:1.0.0'
     implementation project(path: ':vrlib')
+    implementation 'com.squareup.okhttp3:okhttp:3.5.0'
+    implementation 'com.google.code.gson:gson:2.8.2'
+    implementation 'com.github.bumptech.glide:glide:4.5.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.5.0'
 }

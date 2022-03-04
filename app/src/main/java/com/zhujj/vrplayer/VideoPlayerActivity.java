@@ -3,6 +3,7 @@ package com.zhujj.vrplayer;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Surface;
 import android.widget.Toast;
 
@@ -54,11 +55,12 @@ public class VideoPlayerActivity extends MD360PlayerActivity {
         });
 
         Uri uri = getUri();
-//        if (uri != null) {
-        File file = new File("/sdcard/VRVideo/demo1.mp4");
-        mMediaPlayerWrapper.openRemoteFile("rtmp://39.129.25.135:10085/hls/V21DeHongJTYT");
+        if (uri != null) {
+//        File file = new File("/sdcard/VRVideo/demo1.mp4");
+            Log.e("zhujj","url-----"+uri.toString());
+        mMediaPlayerWrapper.openRemoteFile(uri.toString());
         mMediaPlayerWrapper.prepare();
-//        }
+        }
     }
 
     @Override
